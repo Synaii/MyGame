@@ -4,7 +4,7 @@ Uses Crt;
 
 Type 
     ESense = (sPos, sNeg);
-    EDirection = (dUp, dDown, dLeft, dRight);
+    EDirection = (dUp, dDown, dLeft, dRight, dNothing);
 
     TCoord = Class
         fCoord: Byte;
@@ -92,13 +92,14 @@ Begin
                     'D': Player.fDir := dRight;
                     'W': Player.fSpeed := 2;
                     'S': Player.fSpeed := 1;
+                    ' ': Player.fDir := dNothing;
                     #27: Break;
                 End;
             End;
 
             Player.Move;
 
-            Delay(100);
+            Delay(1);
         Until (False);
     Finally
         Player.Free;

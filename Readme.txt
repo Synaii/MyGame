@@ -2,7 +2,7 @@
   Contato: Gabrielsynaii@gmail.com
 
 - Objetivo:
-    -- Criar um jogo 2D parecido com surviv.io, porém inspirado em Dayz.
+    -- Criar componentes bases para futuro jogos.
 
 - Versão 0.1 - (15/02/2020): 
     -- Adicionado classes bases para TPlayer
