@@ -8,11 +8,11 @@ Const
 
     // CUSTOMIZABLE 
         INC_ACCELERATION = 0.01;
-        MIN_ACCELERATION = 0.3;
+        MIN_ACCELERATION = 0;
         MAX_ACCELERATION = 0.8; 
 
 Type 
-    EDirection = (dUp, dDown, dLeft, dRight, dNothing);
+    EDirection = (dUp, dDown, dLeft, dRight);
     ESense = (sPos, sNeg);
 
     TCoord = Class
@@ -93,9 +93,8 @@ Type
             Begin
                 fHorizontal := TCoord.Create(X);
                 fVertical := TCoord.Create(Y);
-                fDir := dNothing;
+                fDir := dRight;
                 fSpeed := Speed;
-
                 fCounter := TCounter.Create(MIN_ACCELERATION, LIMIT_DELAY);
             End;
 
@@ -165,7 +164,6 @@ Begin
                 Case (UpCase(ReadKey())) Of
                     'A': Player.fDir := dLeft;
                     'D': Player.fDir := dRight;
-                    ' ': Player.fDir := dNothing;
                     'W': Player.Accelerate;
                     'S': Player.Desaccelerate;
                     #27: Break;

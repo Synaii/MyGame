@@ -12,3 +12,7 @@
     -- Adicionado classe TCounter para aceleração
     -- Ajustado o código para melhor visualização
     -- Adicionado debug dos campos da classe TPlayer no console
+
+- Versão 0.2.1 - (15/02/2020):
+    -- Retirado direção nula
+    -- Ajustado aceleração mínima para 0
