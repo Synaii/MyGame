@@ -1,18 +1,19 @@
 {$mode objfpc}
 Program main;
-Uses Crt;
+Uses Crt, SysUtils;
 
-Const 
+Const
     // IMPORTANT *
         LIMIT_DELAY = 1;
 
-    // CUSTOMIZABLE 
-        INC_ACCELERATION = 0.01;
+    // CUSTOMIZABLE
         MIN_ACCELERATION = 0;
-        MAX_ACCELERATION = 0.8; 
+        MAX_ACCELERATION = 0.8;
+        INC_ACCELERATION = 0.05;
+        DEC_ACCELERATIOR = INC_ACCELERATION * 3;
 
-Type 
-    EDirection = (dUp, dDown, dLeft, dRight);
+Type
+    EDirection = (dUp, dDown, dLeft, dRight, dNothing);
     ESense = (sPos, sNeg);
 
     TCoord = Class
@@ -24,7 +25,7 @@ Type
         Class Function Move(const Coord: TCoord; Sense: ESense; Amount: Byte): TCoord;
     End;
 
-    TCounter = Class 
+    TCounter = Class
         Private
             fNow, fMax: Single;
         Public
@@ -40,8 +41,11 @@ Type
         Private
             fHorizontal, fVertical: TCoord;
             fCounter: TCounter;
-        Public 
             fDir: EDirection;
+
+            fNewDir: EDirection;
+            fChangingDirection: Boolean;
+        Public
             fSpeed: Byte;
 
             Constructor Create(X, Y, Speed: Byte);
@@ -51,6 +55,7 @@ Type
             Procedure Accelerate;
             Procedure Desaccelerate;
             Procedure Debug;
+            Procedure ChangeDirection(Dir: EDirection);
     End;
 
     { Classes }
@@ -87,7 +92,7 @@ Type
             Function TCounter.CheckEnd: Boolean;
             Begin
                 Result := (fNow >= fMax);
-            End;                             
+            End;
         { TPlayer }
             Constructor TPlayer.Create(X, Y, Speed: Byte);
             Begin
@@ -95,6 +100,8 @@ Type
                 fVertical := TCoord.Create(Y);
                 fDir := dRight;
                 fSpeed := Speed;
+                fChangingDirection := FALSE;
+                fNewDir := dNothing;
                 fCounter := TCounter.Create(MIN_ACCELERATION, LIMIT_DELAY);
             End;
 
@@ -108,17 +115,17 @@ Type
                 GoToXY(fHorizontal.fCoord, fVertical.fCoord); Write(' ');
             End;
 
-            Procedure TPlayer.Move; 
+            Procedure TPlayer.Move;
             Begin
-                If (fCounter.CheckEnd) Then 
+                If (fCounter.CheckEnd) Then
                 Begin
                     Clear;
 
                     Case (fDir) Of
                         dLeft: If ((fHorizontal.fCoord - fSpeed) >= 1) Then fHorizontal := TMoviment.Move(fHorizontal, sNeg, fSpeed) Else fHorizontal.fCoord := 1;
-                        dDown: If ((fVertical.fCoord + fSpeed) <= 30) Then fVertical := TMoviment.Move(fVertical, sNeg, fSpeed) Else fVertical.fCoord := 30;
+                        dDown: If ((fVertical.fCoord + fSpeed) <= 30) Then fVertical := TMoviment.Move(fVertical, sPos, fSpeed) Else fVertical.fCoord := 30;
                         dRight: If ((fHorizontal.fCoord + fSpeed) <= 120) Then fHorizontal := TMoviment.Move(fHorizontal, sPos, fSpeed) Else fHorizontal.fCoord := 120;
-                        dUp: If ((fVertical.fCoord - fSpeed) >= 1) Then fVertical := TMoviment.Move(fVertical, sPos, fSpeed) Else fVertical.fCoord := 1;
+                        dUp: If ((fVertical.fCoord - fSpeed) >= 1) Then fVertical := TMoviment.Move(fVertical, sNeg, fSpeed) Else fVertical.fCoord := 1;
                     End;
 
                     Draw;
@@ -126,56 +133,88 @@ Type
                     fCounter.Reset;
                 End
                     Else fCounter.Count;
-            End;  
+            End;
 
             Procedure TPlayer.Accelerate;
             Begin
                 If ((fCounter.fCountingRate + INC_ACCELERATION) <= MAX_ACCELERATION) Then fCounter.fCountingRate := fCounter.fCountingRate + INC_ACCELERATION Else fCounter.fCountingRate := MAX_ACCELERATION;
             End;
 
-            Procedure TPlayer.Desaccelerate;  
+            Procedure TPlayer.Desaccelerate;
             Begin
-                If ((fCounter.fCountingRate - INC_ACCELERATION) >= MIN_ACCELERATION) Then fCounter.fCountingRate := fCounter.fCountingRate - INC_ACCELERATION Else fCounter.fCountingRate := MIN_ACCELERATION;
+                If ((fCounter.fCountingRate - DEC_ACCELERATIOR) >= MIN_ACCELERATION) Then fCounter.fCountingRate := fCounter.fCountingRate - DEC_ACCELERATIOR Else fCounter.fCountingRate := MIN_ACCELERATION;
             End;
 
             Procedure TPlayer.Debug;
             Begin
-                 GoToXY(1, 2); ClrEol; Write(#13, '+-- STATUS --');
-                 GoToXY(1, 3); ClrEol; Write(#13, '| X: ', fHorizontal.fCoord);
-                 GoToXY(1, 4); ClrEol; Write(#13, '| Y: ', fVertical.fCoord);
-                 GoToXY(1, 5); ClrEol; Write(#13, '| SPEED: ', fSpeed);
-                 GoToXY(1, 6); ClrEol; Write(#13, '| ACC: ', fCounter.fCountingRate*100:0:1);
-                 GoToXY(1, 7); ClrEol; Write(#13, '| COUNTING: ', fCounter.fNow*100:0:1, '/', fCounter.fMax*100:0:1);
+                 GoToXY(1, 1);  Write('+-- STATUS --+');
+                 GoToXY(4, 2);  Write('       ', #13, '| X: ', fHorizontal.fCoord);
+                 GoToXY(4, 3);  Write('       ', #13, '| Y: ', fVertical.fCoord);
+                 GoToXY(6, 4);  Write('           ', #13, '| DIR: ', fDir);
+                 GoToXY(6, 5);  Write('                ', #13, '| NEW DIR: ', fNewDir);
+                 GoToXY(10, 6); Write('       ', #13, '| SPEED: ', fSpeed);
+                 GoToXY(17, 7); Write('       ', #13, '| ACCELERATION: ', fCounter.fCountingRate*100:1:0);
+                 GoToXY(14, 8); Write('    ', #13, '| COUNTING: ', fCounter.fNow*100:1:0);
             End;
-            
-Var 
+
+            Procedure TPlayer.ChangeDirection(Dir: EDirection);
+            Begin
+                Case (fChangingDirection) Of
+                    True:
+                        Begin
+                            Case (fCounter.fCountingRate > 0) Of
+                                True:  Desaccelerate;
+                                False: 
+                                    Begin
+                                        fChangingDirection := FALSE;
+                                        fDir := fNewDir;
+                                        fNewDir := dNothing;
+                                    End;
+                            End;
+                        End;
+                    False:
+                        Begin
+                            Case (fDir = Dir) Of
+                                True: Accelerate;
+                                False:
+                                    Begin
+                                        fChangingDirection := TRUE;
+                                        fNewDir := Dir;
+                                    End;
+                            End;
+                        End;
+                End;
+            End;
+
+Var
     Player: TPlayer;
 
 Begin
     Cursoroff; Clrscr;
 
-    Try 
-        Player := TPlayer.Create(1, 1, 1);
+    Try
+        Player := TPlayer.Create(60, 1, 1);
         Player.Draw;
 
         Repeat
+            Player.Debug;
+
             If (KeyPressed()) Then
             Begin
                 Case (UpCase(ReadKey())) Of
-                    'A': Player.fDir := dLeft;
-                    'D': Player.fDir := dRight;
-                    'W': Player.Accelerate;
-                    'S': Player.Desaccelerate;
+                    'A': Player.ChangeDirection(dLeft);
+                    'D': Player.ChangeDirection(dRight);
+                    'W': Player.ChangeDirection(dUp);
+                    'S': Player.ChangeDirection(dDown);
                     #27: Break;
                 End;
             End;
 
             Player.Move;
-            Player.Debug;
 
             Delay(1);
         Until (False);
     Finally
         Player.Free;
     End;
-End. 
+End.
